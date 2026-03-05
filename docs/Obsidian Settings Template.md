@@ -79,8 +79,8 @@ Given `.obsidian/base-settings/app.json`, the keys in that file are deeply merge
 - [x] Re-run sync when plugin settings are saved
 - [x] Register `Sync base settings` command to trigger sync manually
 
-### Phase III: Polish
+### Phase III: Polish ✅
 
-- [ ] Update `manifest.json` with correct plugin name, description, and author
-- [ ] Update `README.md` to describe the plugin and its configuration
-- [ ] Add console logging for sync operations (files merged, files skipped)
+- [x] Update `manifest.json` with correct plugin name, description, and author
+- [x] Update `README.md` to describe the plugin and its configuration
+- [x] Add console logging for sync operations (files merged, files skipped)
