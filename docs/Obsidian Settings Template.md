@@ -62,22 +62,22 @@ Given `.obsidian/base-settings/app.json`, the keys in that file are deeply merge
 - [x] Use the plugin template to create a repo
 - [x] Install packages
 
-### Phase II: Core Implementation
+### Phase II: Core Implementation ✅
 
-- [ ] Rename plugin classes and identifiers from sample names to plugin-specific names
-- [ ] Define `baseTemplatesPath` setting (string, path relative to `.obsidian/`, default empty)
-- [ ] Define `debounceInterval` setting (number in ms, default 500)
-- [ ] Implement deep merge utility: recursively merges source into target, source wins on conflict
-- [ ] Implement sync procedure:
+- [x] Rename plugin classes and identifiers from sample names to plugin-specific names
+- [x] Define `baseTemplatesPath` setting (string, path relative to `.obsidian/`, default empty)
+- [x] Define `debounceInterval` setting (number in ms, default 500)
+- [x] Implement deep merge utility: recursively merges source into target, source wins on conflict
+- [x] Implement sync procedure:
   - Read all `.json` files from `$baseTemplates`
   - For each, check if a matching `.json` exists in `.obsidian/`
   - If target exists: deep merge template into it and write back
   - If target does not exist: skip
-- [ ] Run sync on plugin startup (after settings load)
-- [ ] Register debounced file watcher on `$baseTemplates`; re-run sync on any change
-- [ ] Register debounced file watcher on `.obsidian/`; unregister before sync, re-register after
-- [ ] Re-run sync when plugin settings are saved
-- [ ] Register `Sync base settings` command to trigger sync manually
+- [x] Run sync on plugin startup (after settings load)
+- [x] Register debounced file watcher on `$baseTemplates`; re-run sync on any change
+- [x] Register debounced file watcher on `.obsidian/`; isSyncing flag prevents feedback loop
+- [x] Re-run sync when plugin settings are saved
+- [x] Register `Sync base settings` command to trigger sync manually
 
 ### Phase III: Polish
 
