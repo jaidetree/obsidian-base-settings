@@ -154,6 +154,46 @@ describe('deepMerge', () => {
 			expect(result).toEqual({ ui: { plugins: ['required-plugin', 'user-plugin'] } });
 		});
 
+		it('concat unique: true removes duplicates present in both value and target', () => {
+			const result = deepMerge(
+				{ plugins: ['b', 'c'] },
+				{ plugins: { value: ['a', 'b'], __mergeDirective: { strategy: 'concat', unique: true } } }
+			);
+			expect(result.plugins).toEqual(['a', 'b', 'c']);
+		});
+
+		it('concat unique: true preserves value items when duplicated within target', () => {
+			const result = deepMerge(
+				{ plugins: ['b', 'c'] },
+				{ plugins: { value: ['a', 'b'], __mergeDirective: { strategy: 'concat', unique: true } } }
+			);
+			expect(result.plugins).toEqual(['a', 'b', 'c']);
+		});
+
+		it('concat unique: false does not deduplicate', () => {
+			const result = deepMerge(
+				{ plugins: ['b', 'c'] },
+				{ plugins: { value: ['a', 'b'], __mergeDirective: { strategy: 'concat', unique: false } } }
+			);
+			expect(result.plugins).toEqual(['a', 'b', 'b', 'c']);
+		});
+
+		it('concat without unique does not deduplicate', () => {
+			const result = deepMerge(
+				{ plugins: ['b', 'c'] },
+				{ plugins: { value: ['a', 'b'], __mergeDirective: { strategy: 'concat' } } }
+			);
+			expect(result.plugins).toEqual(['a', 'b', 'b', 'c']);
+		});
+
+		it('replace unique: true deduplicates value array', () => {
+			const result = deepMerge(
+				{ plugins: ['x'] },
+				{ plugins: { value: ['a', 'b', 'a'], __mergeDirective: { strategy: 'replace', unique: true } } }
+			);
+			expect(result.plugins).toEqual(['a', 'b']);
+		});
+
 		it('plain object without __mergeDirective is NOT treated as a directive', () => {
 			const result = deepMerge(
 				{ settings: { a: 1, b: 2 } },

@@ -1,6 +1,6 @@
 interface MergeDirective {
 	value: unknown;
-	__mergeDirective: { strategy: 'replace' | 'concat' };
+	__mergeDirective: { strategy: 'replace' | 'concat'; unique?: boolean };
 }
 
 function isMergeDirective(val: unknown): val is MergeDirective {
@@ -14,9 +14,13 @@ function getType(val: unknown): string {
 }
 
 function applyStrategy(directive: MergeDirective, targetVal: unknown): unknown {
-	const { strategy } = directive.__mergeDirective;
+	const { strategy, unique } = directive.__mergeDirective;
 	if (strategy === 'concat') {
-		return [...(directive.value as unknown[]), ...(targetVal as unknown[])];
+		const merged = [...(directive.value as unknown[]), ...(targetVal as unknown[])];
+		return unique ? [...new Set(merged)] : merged;
+	}
+	if (unique) {
+		return [...new Set(directive.value as unknown[])];
 	}
 	return directive.value;
 }

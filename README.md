@@ -40,10 +40,28 @@ The directive object must have a `__mergeDirective` key. Any object without that
 
 ### Available strategies
 
-| Strategy | Behaviour |
-|---|---|
-| `replace` | `value` replaces the target value entirely (explicit version of the default) |
-| `concat` | `[...value, ...targetValue]` — base items first, then user items |
+| Strategy | Behaviour | `unique` supported |
+|---|---|---|
+| `replace` | `value` replaces the target value entirely (explicit version of the default) | yes |
+| `concat` | `[...value, ...targetValue]` — base items first, then user items | yes |
+
+#### `unique` flag
+
+Add `"unique": true` to any directive to remove duplicate entries from the result. Deduplication uses value identity, so it works best with primitive arrays such as plugin ID lists.
+
+```json
+{
+  "plugins": {
+    "value": ["dataview", "templater-obsidian"],
+    "__mergeDirective": {
+      "strategy": "concat",
+      "unique": true
+    }
+  }
+}
+```
+
+With `unique: true`, if the user already has `"dataview"` in their list, it will appear only once in the merged result. First-occurrence order is preserved, so `value` items always take precedence over target duplicates.
 
 ### Example — enforcing required community plugins
 
