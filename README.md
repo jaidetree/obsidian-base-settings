@@ -37,7 +37,18 @@ A **Sync base settings** command is also available in the command palette to tri
 
 ## Installation
 
-Copy `main.js`, `manifest.json`, and `styles.css` into `.obsidian/plugins/obsidian-base-settings/` in your vault, then enable the plugin in Obsidian settings.
+### Community plugin manager
+
+1. Open Obsidian **Settings**
+2. Go to **Community plugins** and turn off **Restricted mode** if prompted
+3. Click **Browse** and search for **Base Settings**
+4. Click **Install**, then **Enable**
+
+### Manual installation
+
+1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](../../releases/latest)
+2. Copy them into `.obsidian/plugins/obsidian-base-settings/` in your vault
+3. Open Obsidian **Settings → Community plugins** and enable **Base Settings**
 
 ## Development
 
