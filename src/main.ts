@@ -86,7 +86,10 @@ export default class BaseSettingsPlugin extends Plugin {
 				const filename = templatePath.split('/').pop()!;
 				const targetPath = `${configDir}/${filename}`;
 
-				if (!(await adapter.exists(targetPath))) continue;
+				if (!(await adapter.exists(targetPath))) {
+					console.log(`[Base Settings] skipped ${filename} (target does not exist yet)`);
+					continue;
+				}
 
 				const [templateContent, targetContent] = await Promise.all([
 					adapter.read(templatePath),
@@ -98,6 +101,7 @@ export default class BaseSettingsPlugin extends Plugin {
 
 				const merged = deepMerge(targetJson, templateJson);
 				await adapter.write(targetPath, JSON.stringify(merged, null, '\t'));
+				console.log(`[Base Settings] merged ${filename}`);
 			}
 		} finally {
 			this.isSyncing = false;
