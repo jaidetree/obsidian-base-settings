@@ -17,7 +17,7 @@ export default class BaseSettingsPlugin extends Plugin {
 		await this.loadSettings();
 		this.addSettingTab(new BaseSettingsSettingTab(this.app, this));
 		this.addCommand({
-			id: "sync-base-settings",
+			id: "sync",
 			name: "Sync settings",
 			callback: () => {
 				void this.sync();
