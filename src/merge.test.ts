@@ -35,9 +35,8 @@ describe('deepMerge', () => {
 			expect(result.a).toBe('base');
 		});
 
-		it('source null replaces target value', () => {
-			const result = deepMerge({ a: 'user' }, { a: null });
-			expect(result.a).toBeNull();
+		it('source null replaces target value throws on type mismatch', () => {
+			expect(() => deepMerge({ a: 'user' }, { a: null })).toThrow('Type mismatch at "a"');
 		});
 
 		it('source false replaces target true', () => {
@@ -50,14 +49,12 @@ describe('deepMerge', () => {
 			expect(result.a).toBe(0);
 		});
 
-		it('source primitive replaces target object', () => {
-			const result = deepMerge({ a: { nested: true } }, { a: 'flat' });
-			expect(result.a).toBe('flat');
+		it('source primitive replaces target object throws on type mismatch', () => {
+			expect(() => deepMerge({ a: { nested: true } }, { a: 'flat' })).toThrow('Type mismatch at "a"');
 		});
 
-		it('source object replaces target primitive', () => {
-			const result = deepMerge({ a: 'flat' }, { a: { nested: true } });
-			expect(result.a).toEqual({ nested: true });
+		it('source object replaces target primitive throws on type mismatch', () => {
+			expect(() => deepMerge({ a: 'flat' }, { a: { nested: true } })).toThrow('Type mismatch at "a"');
 		});
 	});
 
@@ -97,19 +94,72 @@ describe('deepMerge', () => {
 			expect(result.plugins).toEqual(['c']);
 		});
 
-		it('source array replaces target object', () => {
-			const result = deepMerge({ a: { nested: true } }, { a: ['x'] });
-			expect(result.a).toEqual(['x']);
+		it('source array replaces target object throws on type mismatch', () => {
+			expect(() => deepMerge({ a: { nested: true } }, { a: ['x'] })).toThrow('Type mismatch at "a"');
 		});
 
-		it('source object replaces target array', () => {
-			const result = deepMerge({ a: [1, 2] }, { a: { nested: true } });
-			expect(result.a).toEqual({ nested: true });
+		it('source object replaces target array throws on type mismatch', () => {
+			expect(() => deepMerge({ a: [1, 2] }, { a: { nested: true } })).toThrow('Type mismatch at "a"');
 		});
 
 		it('does not concatenate arrays', () => {
 			const result = deepMerge({ a: [1, 2, 3] }, { a: [4, 5] });
 			expect(result.a).toEqual([4, 5]);
+		});
+	});
+
+	describe('merge directives', () => {
+		it('replace strategy replaces the target value', () => {
+			const result = deepMerge(
+				{ plugins: ['user-plugin'] },
+				{ plugins: { value: ['required-plugin'], __mergeDirective: { strategy: 'replace' } } }
+			);
+			expect(result.plugins).toEqual(['required-plugin']);
+		});
+
+		it('concat strategy prepends base array before target array', () => {
+			const result = deepMerge(
+				{ plugins: ['user-plugin'] },
+				{ plugins: { value: ['required-plugin'], __mergeDirective: { strategy: 'concat' } } }
+			);
+			expect(result.plugins).toEqual(['required-plugin', 'user-plugin']);
+		});
+
+		it('concat when target is not an array throws on type mismatch', () => {
+			expect(() => deepMerge(
+				{ plugins: 'not-an-array' },
+				{ plugins: { value: ['required-plugin'], __mergeDirective: { strategy: 'concat' } } }
+			)).toThrow('Type mismatch at "plugins"');
+		});
+
+		it('concat when value is not an array throws on type mismatch', () => {
+			expect(() => deepMerge(
+				{ plugins: ['user-plugin'] },
+				{ plugins: { value: 'required-plugin', __mergeDirective: { strategy: 'concat' } } }
+			)).toThrow('Type mismatch at "plugins"');
+		});
+
+		it('directive when target key does not exist throws', () => {
+			expect(() => deepMerge(
+				{},
+				{ plugins: { value: ['required-plugin'], __mergeDirective: { strategy: 'concat' } } }
+			)).toThrow('Type mismatch at "plugins"');
+		});
+
+		it('directive nested inside a deeper object works correctly', () => {
+			const result = deepMerge(
+				{ ui: { plugins: ['user-plugin'] } },
+				{ ui: { plugins: { value: ['required-plugin'], __mergeDirective: { strategy: 'concat' } } } }
+			);
+			expect(result).toEqual({ ui: { plugins: ['required-plugin', 'user-plugin'] } });
+		});
+
+		it('plain object without __mergeDirective is NOT treated as a directive', () => {
+			const result = deepMerge(
+				{ settings: { a: 1, b: 2 } },
+				{ settings: { a: 99 } }
+			);
+			expect(result.settings).toEqual({ a: 99, b: 2 });
 		});
 	});
 

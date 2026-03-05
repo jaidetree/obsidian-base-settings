@@ -17,6 +17,48 @@ Teams or projects with multiple contributors can commit a folder of base templat
 
 If a target config file does not exist yet (e.g. a plugin hasn't been installed), the template is skipped and will be applied on the next sync after the file is created by Obsidian.
 
+## Merge strategies
+
+By default the plugin deep-merges objects and replaces all other values (arrays, scalars) with the template value. For arrays you may want a different behaviour — for example, _adding_ required plugins to the user's existing list rather than replacing it entirely.
+
+A **merge directive** lets template authors declare the strategy for a specific key:
+
+```json
+{
+  "plugins": {
+    "value": ["required-plugin-a", "required-plugin-b"],
+    "__mergeDirective": {
+      "strategy": "concat"
+    }
+  }
+}
+```
+
+The directive object must have a `__mergeDirective` key. Any object without that key is treated as a normal value and deep-merged as usual.
+
+**Type enforcement:** when source and target values both exist for a key, they must share the same type (e.g. both arrays, both strings). A mismatch throws an error. This applies to both plain merges and directive merges — a directive also requires the target key to already exist with a matching type.
+
+### Available strategies
+
+| Strategy | Behaviour |
+|---|---|
+| `replace` | `value` replaces the target value entirely (explicit version of the default) |
+| `concat` | `[...value, ...targetValue]` — base items first, then user items |
+
+### Example — enforcing required community plugins
+
+`base-settings/community-plugins.json`:
+```json
+{
+  "value": ["dataview", "templater-obsidian"],
+  "__mergeDirective": {
+    "strategy": "concat"
+  }
+}
+```
+
+A user whose `community-plugins.json` already contains `["calendar"]` will end up with `["dataview", "templater-obsidian", "calendar"]` after sync.
+
 ## Settings
 
 | Setting | Description | Default |
