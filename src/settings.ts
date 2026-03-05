@@ -32,6 +32,7 @@ export class BaseSettingsSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					this.plugin.settings.baseTemplatesPath = value.trim();
 					await this.plugin.saveSettings();
+					await this.plugin.sync();
 				}));
 
 		new Setting(containerEl)
