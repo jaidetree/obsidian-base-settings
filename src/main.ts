@@ -1,6 +1,10 @@
-import { Events, Plugin, normalizePath } from 'obsidian';
-import { BaseSettingsPluginSettings, DEFAULT_SETTINGS, BaseSettingsSettingTab } from './settings';
-import { deepMerge } from './merge';
+import { Events, Plugin, normalizePath } from "obsidian";
+import {
+	BaseSettingsPluginSettings,
+	DEFAULT_SETTINGS,
+	BaseSettingsSettingTab,
+} from "./settings";
+import { deepMerge } from "./merge";
 
 export default class BaseSettingsPlugin extends Plugin {
 	settings: BaseSettingsPluginSettings;
@@ -13,54 +17,64 @@ export default class BaseSettingsPlugin extends Plugin {
 		await this.loadSettings();
 		this.addSettingTab(new BaseSettingsSettingTab(this.app, this));
 		this.addCommand({
-			id: 'sync-base-settings',
-			name: 'Sync settings',
-			callback: () => { void this.sync(); },
+			id: "sync-base-settings",
+			name: "Sync settings",
+			callback: () => {
+				void this.sync();
+			},
 		});
 		this.registerWatchers();
 		await this.sync();
 	}
 
 	onunload() {
-		if (this.templatesDebounceTimer) clearTimeout(this.templatesDebounceTimer);
-		if (this.obsidianDebounceTimer) clearTimeout(this.obsidianDebounceTimer);
+		if (this.templatesDebounceTimer)
+			clearTimeout(this.templatesDebounceTimer);
+		if (this.obsidianDebounceTimer)
+			clearTimeout(this.obsidianDebounceTimer);
 	}
 
 	private get templatesDir(): string | null {
 		const { baseTemplatesPath } = this.settings;
 		if (!baseTemplatesPath) return null;
-		return normalizePath(`${this.app.vault.configDir}/${baseTemplatesPath}`);
+		return normalizePath(
+			`${this.app.vault.configDir}/${baseTemplatesPath}`,
+		);
 	}
 
 	private registerWatchers() {
 		// 'raw' fires for any filesystem change including config dir files;
 		// it exists at runtime but is not in Obsidian's public type definitions
 		this.registerEvent(
-			(this.app.vault as unknown as Events).on('raw', (path: string) => {
-				if (!path.endsWith('.json')) return;
+			(this.app.vault as unknown as Events).on("raw", (path: string) => {
+				if (!path.endsWith(".json")) return;
 
 				const configDir = this.app.vault.configDir;
 				const { templatesDir } = this;
 
 				// $baseTemplates watcher: any change inside the templates folder
-				if (templatesDir && path.startsWith(templatesDir + '/')) {
-					this.schedulSync('templates');
+				if (templatesDir && path.startsWith(templatesDir + "/")) {
+					this.scheduleSync("templates");
 					return;
 				}
 
 				// config dir watcher: .json files directly in the config dir (not in subfolders)
 				// Ignore events fired during a sync to prevent feedback loop
-				const inConfigRoot = path.startsWith(configDir + '/') &&
-					!path.slice(configDir.length + 1).includes('/');
+				const inConfigRoot =
+					path.startsWith(configDir + "/") &&
+					!path.slice(configDir.length + 1).includes("/");
 				if (inConfigRoot && !this.isSyncing) {
-					this.schedulSync('obsidian');
+					this.scheduleSync("obsidian");
 				}
-			})
+			}),
 		);
 	}
 
-	private schedulSync(source: 'templates' | 'obsidian') {
-		const timerKey = source === 'templates' ? 'templatesDebounceTimer' : 'obsidianDebounceTimer';
+	private scheduleSync(source: "templates" | "obsidian") {
+		const timerKey =
+			source === "templates"
+				? "templatesDebounceTimer"
+				: "obsidianDebounceTimer";
 		const existing = this[timerKey];
 		if (existing) clearTimeout(existing);
 		this[timerKey] = setTimeout(() => {
@@ -84,9 +98,9 @@ export default class BaseSettingsPlugin extends Plugin {
 		try {
 			const listing = await adapter.list(templatesDir);
 			for (const templatePath of listing.files) {
-				if (!templatePath.endsWith('.json')) continue;
+				if (!templatePath.endsWith(".json")) continue;
 
-				const filename = templatePath.split('/').pop()!;
+				const filename = templatePath.split("/").pop()!;
 				const targetPath = normalizePath(`${configDir}/${filename}`);
 
 				if (!(await adapter.exists(targetPath))) continue;
@@ -96,11 +110,20 @@ export default class BaseSettingsPlugin extends Plugin {
 					adapter.read(targetPath),
 				]);
 
-				const templateJson = JSON.parse(templateContent) as Record<string, unknown>;
-				const targetJson = JSON.parse(targetContent) as Record<string, unknown>;
+				const templateJson = JSON.parse(templateContent) as Record<
+					string,
+					unknown
+				>;
+				const targetJson = JSON.parse(targetContent) as Record<
+					string,
+					unknown
+				>;
 
 				const merged = deepMerge(targetJson, templateJson);
-				await adapter.write(targetPath, JSON.stringify(merged, null, '\t'));
+				await adapter.write(
+					targetPath,
+					JSON.stringify(merged, null, "\t"),
+				);
 			}
 		} finally {
 			this.isSyncing = false;
@@ -108,7 +131,11 @@ export default class BaseSettingsPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<BaseSettingsPluginSettings>);
+		this.settings = Object.assign(
+			{},
+			DEFAULT_SETTINGS,
+			(await this.loadData()) as Partial<BaseSettingsPluginSettings>,
+		);
 	}
 
 	async saveSettings() {
