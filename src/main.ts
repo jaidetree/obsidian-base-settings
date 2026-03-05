@@ -1,4 +1,4 @@
-import { Events, Plugin } from 'obsidian';
+import { Events, Plugin, normalizePath } from 'obsidian';
 import { BaseSettingsPluginSettings, DEFAULT_SETTINGS, BaseSettingsSettingTab } from './settings';
 import { deepMerge } from './merge';
 
@@ -26,6 +26,12 @@ export default class BaseSettingsPlugin extends Plugin {
 		if (this.obsidianDebounceTimer) clearTimeout(this.obsidianDebounceTimer);
 	}
 
+	private get templatesDir(): string | null {
+		const { baseTemplatesPath } = this.settings;
+		if (!baseTemplatesPath) return null;
+		return normalizePath(`${this.app.vault.configDir}/${baseTemplatesPath}`);
+	}
+
 	private registerWatchers() {
 		// 'raw' fires for any filesystem change including config dir files;
 		// it exists at runtime but is not in Obsidian's public type definitions
@@ -34,10 +40,7 @@ export default class BaseSettingsPlugin extends Plugin {
 				if (!path.endsWith('.json')) return;
 
 				const configDir = this.app.vault.configDir;
-				const { baseTemplatesPath } = this.settings;
-				const templatesDir = baseTemplatesPath
-					? `${configDir}/${baseTemplatesPath}`
-					: null;
+				const { templatesDir } = this;
 
 				// $baseTemplates watcher: any change inside the templates folder
 				if (templatesDir && path.startsWith(templatesDir + '/')) {
@@ -67,12 +70,13 @@ export default class BaseSettingsPlugin extends Plugin {
 	}
 
 	async sync() {
-		const { baseTemplatesPath } = this.settings;
-		if (!baseTemplatesPath) return;
+		const { templatesDir } = this;
+		if (!templatesDir) return;
 
+		// The Vault API only exposes TFile objects for vault content, not config dir
+		// files. The adapter is used here intentionally to access .obsidian/ directly.
 		const adapter = this.app.vault.adapter;
 		const configDir = this.app.vault.configDir;
-		const templatesDir = `${configDir}/${baseTemplatesPath}`;
 
 		if (!(await adapter.exists(templatesDir))) return;
 
@@ -83,12 +87,9 @@ export default class BaseSettingsPlugin extends Plugin {
 				if (!templatePath.endsWith('.json')) continue;
 
 				const filename = templatePath.split('/').pop()!;
-				const targetPath = `${configDir}/${filename}`;
+				const targetPath = normalizePath(`${configDir}/${filename}`);
 
-				if (!(await adapter.exists(targetPath))) {
-					console.debug(`[Base Settings] skipped ${filename} (target does not exist yet)`);
-					continue;
-				}
+				if (!(await adapter.exists(targetPath))) continue;
 
 				const [templateContent, targetContent] = await Promise.all([
 					adapter.read(templatePath),
@@ -100,7 +101,6 @@ export default class BaseSettingsPlugin extends Plugin {
 
 				const merged = deepMerge(targetJson, templateJson);
 				await adapter.write(targetPath, JSON.stringify(merged, null, '\t'));
-				console.debug(`[Base Settings] merged ${filename}`);
 			}
 		} finally {
 			this.isSyncing = false;
