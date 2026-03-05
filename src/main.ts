@@ -1,4 +1,4 @@
-import { Plugin } from 'obsidian';
+import { Events, Plugin } from 'obsidian';
 import { BaseSettingsPluginSettings, DEFAULT_SETTINGS, BaseSettingsSettingTab } from './settings';
 import { deepMerge } from './merge';
 
@@ -14,8 +14,8 @@ export default class BaseSettingsPlugin extends Plugin {
 		this.addSettingTab(new BaseSettingsSettingTab(this.app, this));
 		this.addCommand({
 			id: 'sync-base-settings',
-			name: 'Sync base settings',
-			callback: () => { this.sync(); },
+			name: 'Sync settings',
+			callback: () => { void this.sync(); },
 		});
 		this.registerWatchers();
 		await this.sync();
@@ -27,11 +27,10 @@ export default class BaseSettingsPlugin extends Plugin {
 	}
 
 	private registerWatchers() {
-		// 'raw' fires for any filesystem change including .obsidian/ files;
+		// 'raw' fires for any filesystem change including config dir files;
 		// it exists at runtime but is not in Obsidian's public type definitions
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		this.registerEvent(
-			(this.app.vault as any).on('raw', (path: string) => {
+			(this.app.vault as unknown as Events).on('raw', (path: string) => {
 				if (!path.endsWith('.json')) return;
 
 				const configDir = this.app.vault.configDir;
@@ -46,7 +45,7 @@ export default class BaseSettingsPlugin extends Plugin {
 					return;
 				}
 
-				// .obsidian/ watcher: .json files directly in .obsidian/ (not in subfolders)
+				// config dir watcher: .json files directly in the config dir (not in subfolders)
 				// Ignore events fired during a sync to prevent feedback loop
 				const inConfigRoot = path.startsWith(configDir + '/') &&
 					!path.slice(configDir.length + 1).includes('/');
@@ -61,9 +60,9 @@ export default class BaseSettingsPlugin extends Plugin {
 		const timerKey = source === 'templates' ? 'templatesDebounceTimer' : 'obsidianDebounceTimer';
 		const existing = this[timerKey];
 		if (existing) clearTimeout(existing);
-		this[timerKey] = setTimeout(async () => {
+		this[timerKey] = setTimeout(() => {
 			this[timerKey] = null;
-			await this.sync();
+			void this.sync();
 		}, this.settings.debounceInterval);
 	}
 
@@ -87,7 +86,7 @@ export default class BaseSettingsPlugin extends Plugin {
 				const targetPath = `${configDir}/${filename}`;
 
 				if (!(await adapter.exists(targetPath))) {
-					console.log(`[Base Settings] skipped ${filename} (target does not exist yet)`);
+					console.debug(`[Base Settings] skipped ${filename} (target does not exist yet)`);
 					continue;
 				}
 
@@ -101,7 +100,7 @@ export default class BaseSettingsPlugin extends Plugin {
 
 				const merged = deepMerge(targetJson, templateJson);
 				await adapter.write(targetPath, JSON.stringify(merged, null, '\t'));
-				console.log(`[Base Settings] merged ${filename}`);
+				console.debug(`[Base Settings] merged ${filename}`);
 			}
 		} finally {
 			this.isSyncing = false;

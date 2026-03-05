@@ -25,9 +25,8 @@ export class BaseSettingsSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Base templates path')
-			.setDesc('Folder containing base template JSON files, relative to .obsidian/ (e.g. base-settings)')
+			.setDesc(`Folder containing base template JSON files, relative to ${this.plugin.app.vault.configDir}/ (e.g. base-settings)`)
 			.addText(text => text
-				.setPlaceholder('base-settings')
 				.setValue(this.plugin.settings.baseTemplatesPath)
 				.onChange(async (value) => {
 					this.plugin.settings.baseTemplatesPath = value.trim();

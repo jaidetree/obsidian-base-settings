@@ -7,10 +7,7 @@ export function deepMerge(
 		const sourceVal = source[key];
 		const targetVal = result[key];
 		if (isPlainObject(sourceVal) && isPlainObject(targetVal)) {
-			result[key] = deepMerge(
-				targetVal as Record<string, unknown>,
-				sourceVal as Record<string, unknown>
-			);
+			result[key] = deepMerge(targetVal, sourceVal);
 		} else {
 			result[key] = sourceVal;
 		}
