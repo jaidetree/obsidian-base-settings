@@ -1,11 +1,10 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
+	"id": "obsidian-base-settings",
+	"name": "Base Settings",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"description": "Enforce shared base settings across multi-user vaults by deeply merging template JSON files into .obsidian config files.",
+	"author": "jaide",
+	"authorUrl": "",
 	"isDesktopOnly": false
 }
