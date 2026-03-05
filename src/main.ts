@@ -5,13 +5,61 @@ import { deepMerge } from './merge';
 export default class BaseSettingsPlugin extends Plugin {
 	settings: BaseSettingsPluginSettings;
 
+	private isSyncing = false;
+	private templatesDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+	private obsidianDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
 	async onload() {
 		await this.loadSettings();
 		this.addSettingTab(new BaseSettingsSettingTab(this.app, this));
+		this.registerWatchers();
 		await this.sync();
 	}
 
 	onunload() {
+		if (this.templatesDebounceTimer) clearTimeout(this.templatesDebounceTimer);
+		if (this.obsidianDebounceTimer) clearTimeout(this.obsidianDebounceTimer);
+	}
+
+	private registerWatchers() {
+		// 'raw' fires for any filesystem change including .obsidian/ files;
+		// it exists at runtime but is not in Obsidian's public type definitions
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		this.registerEvent(
+			(this.app.vault as any).on('raw', (path: string) => {
+				if (!path.endsWith('.json')) return;
+
+				const configDir = this.app.vault.configDir;
+				const { baseTemplatesPath } = this.settings;
+				const templatesDir = baseTemplatesPath
+					? `${configDir}/${baseTemplatesPath}`
+					: null;
+
+				// $baseTemplates watcher: any change inside the templates folder
+				if (templatesDir && path.startsWith(templatesDir + '/')) {
+					this.schedulSync('templates');
+					return;
+				}
+
+				// .obsidian/ watcher: .json files directly in .obsidian/ (not in subfolders)
+				// Ignore events fired during a sync to prevent feedback loop
+				const inConfigRoot = path.startsWith(configDir + '/') &&
+					!path.slice(configDir.length + 1).includes('/');
+				if (inConfigRoot && !this.isSyncing) {
+					this.schedulSync('obsidian');
+				}
+			})
+		);
+	}
+
+	private schedulSync(source: 'templates' | 'obsidian') {
+		const timerKey = source === 'templates' ? 'templatesDebounceTimer' : 'obsidianDebounceTimer';
+		const existing = this[timerKey];
+		if (existing) clearTimeout(existing);
+		this[timerKey] = setTimeout(async () => {
+			this[timerKey] = null;
+			await this.sync();
+		}, this.settings.debounceInterval);
 	}
 
 	async sync() {
@@ -24,25 +72,30 @@ export default class BaseSettingsPlugin extends Plugin {
 
 		if (!(await adapter.exists(templatesDir))) return;
 
-		const listing = await adapter.list(templatesDir);
-		for (const templatePath of listing.files) {
-			if (!templatePath.endsWith('.json')) continue;
+		this.isSyncing = true;
+		try {
+			const listing = await adapter.list(templatesDir);
+			for (const templatePath of listing.files) {
+				if (!templatePath.endsWith('.json')) continue;
 
-			const filename = templatePath.split('/').pop()!;
-			const targetPath = `${configDir}/${filename}`;
+				const filename = templatePath.split('/').pop()!;
+				const targetPath = `${configDir}/${filename}`;
 
-			if (!(await adapter.exists(targetPath))) continue;
+				if (!(await adapter.exists(targetPath))) continue;
 
-			const [templateContent, targetContent] = await Promise.all([
-				adapter.read(templatePath),
-				adapter.read(targetPath),
-			]);
+				const [templateContent, targetContent] = await Promise.all([
+					adapter.read(templatePath),
+					adapter.read(targetPath),
+				]);
 
-			const templateJson = JSON.parse(templateContent) as Record<string, unknown>;
-			const targetJson = JSON.parse(targetContent) as Record<string, unknown>;
+				const templateJson = JSON.parse(templateContent) as Record<string, unknown>;
+				const targetJson = JSON.parse(targetContent) as Record<string, unknown>;
 
-			const merged = deepMerge(targetJson, templateJson);
-			await adapter.write(targetPath, JSON.stringify(merged, null, '\t'));
+				const merged = deepMerge(targetJson, templateJson);
+				await adapter.write(targetPath, JSON.stringify(merged, null, '\t'));
+			}
+		} finally {
+			this.isSyncing = false;
 		}
 	}
 
