@@ -110,16 +110,20 @@ export default class BaseSettingsPlugin extends Plugin {
 					adapter.read(targetPath),
 				]);
 
-				const templateJson = JSON.parse(templateContent) as Record<
-					string,
-					unknown
-				>;
-				const targetJson = JSON.parse(targetContent) as Record<
-					string,
-					unknown
-				>;
+				const templateJson = JSON.parse(templateContent) as unknown;
+				const targetJson = JSON.parse(targetContent) as unknown;
 
-				const merged = deepMerge(targetJson, templateJson);
+				const isObject = (v: unknown): v is Record<string, unknown> =>
+					typeof v === 'object' && v !== null && !Array.isArray(v);
+
+				let merged: unknown;
+				if (isObject(templateJson) && isObject(targetJson)) {
+					merged = deepMerge(targetJson, templateJson);
+				} else if (Array.isArray(templateJson) && Array.isArray(targetJson)) {
+					merged = [...new Set([...templateJson, ...targetJson])];
+				} else {
+					merged = templateJson;
+				}
 				await adapter.write(
 					targetPath,
 					JSON.stringify(merged, null, "\t"),

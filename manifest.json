@@ -1,7 +1,7 @@
 {
 	"id": "base-settings",
 	"name": "Base Settings",
-	"version": "1.1.1",
+	"version": "1.1.2",
 	"minAppVersion": "0.15.0",
 	"description": "Enforce shared base settings across multi-user vaults by deeply merging template JSON files into config files.",
 	"author": "jaide",
