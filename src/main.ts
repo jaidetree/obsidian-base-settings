@@ -115,12 +115,13 @@ export default class BaseSettingsPlugin extends Plugin {
 
 				const isObject = (v: unknown): v is Record<string, unknown> =>
 					typeof v === 'object' && v !== null && !Array.isArray(v);
+				const isArray = (v: unknown): v is unknown[] => Array.isArray(v);
 
 				let merged: unknown;
-				if (isObject(templateJson) && isObject(targetJson)) {
-					merged = deepMerge(targetJson, templateJson);
-				} else if (Array.isArray(templateJson) && Array.isArray(targetJson)) {
+				if (isArray(templateJson) && isArray(targetJson)) {
 					merged = [...new Set([...templateJson, ...targetJson])];
+				} else if (isObject(templateJson) && isObject(targetJson)) {
+					merged = deepMerge(targetJson, templateJson);
 				} else {
 					merged = templateJson;
 				}
