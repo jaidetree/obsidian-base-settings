@@ -59,12 +59,18 @@ export default class BaseSettingsPlugin extends Plugin {
 				}
 
 				// config dir watcher: .json files directly in the config dir (not in subfolders)
-				// Ignore events fired during a sync to prevent feedback loop
+				// Only sync if a template exists for the changed file, to avoid
+				// clobbering user changes in files that have no base template
+				if (!templatesDir) return;
 				const inConfigRoot =
 					path.startsWith(configDir + "/") &&
 					!path.slice(configDir.length + 1).includes("/");
 				if (inConfigRoot && !this.isSyncing) {
-					this.scheduleSync("obsidian");
+					const filename = path.split("/").pop()!;
+					const templatePath = normalizePath(`${templatesDir}/${filename}`);
+					void this.app.vault.adapter.exists(templatePath).then(exists => {
+						if (exists) this.scheduleSync("obsidian");
+					});
 				}
 			}),
 		);
@@ -125,10 +131,10 @@ export default class BaseSettingsPlugin extends Plugin {
 				} else {
 					merged = templateJson;
 				}
-				await adapter.write(
-					targetPath,
-					JSON.stringify(merged, null, "\t"),
-				);
+				const mergedContent = JSON.stringify(merged, null, "\t");
+				if (mergedContent !== targetContent) {
+					await adapter.write(targetPath, mergedContent);
+				}
 			}
 		} finally {
 			this.isSyncing = false;
